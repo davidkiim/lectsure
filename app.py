@@ -7,6 +7,9 @@ from loguru import logger
 from typing import Optional, List
 from pydantic import BaseModel
 
+from services.TranscribeService import WhisperService
+from services.SummarizeService import SummarizeService
+
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -17,6 +20,8 @@ class Message(BaseModel):
     role: str
     content: str
 
+ws = WhisperService()
+ss = SummarizeService(API_KEY)
 async def make_completion(messages:List[Message], nb_retries:int=3, delay:int=30) -> Optional[str]:
     '''
     Sends a request to the ChatGPT API to retrieve a response based on a list of previous messages.
@@ -67,6 +72,7 @@ async def predict(input, history):
 def video_identity(video):
     return video
 
+
 '''
 Gradio Blocks low-level API that allows to create custom web applications (here our chat app and video player)
 '''
@@ -85,9 +91,15 @@ with gr.Blocks() as demo:
     
     summary = gr.Textbox(label='Summary',interactive=False)
     transcript = gr.Textbox(label='Transcript',interactive=False)
+    
+    def on_upload(video):
+        file_path = video
+        transcript = ws.transcribe(file_path)
+        summary = ss.summarize(transcript)
+        return transcript, summary
+    
+    vid.upload(fn=on_upload, inputs=[vid], outputs=[transcript, summary])
 
-    
-    
     
 if __name__ == '__main__':
     logger.info('Starting Demo...')
