@@ -20,3 +20,13 @@ Gradio, GPT/other LLM API, Whisper/other transcription API
 4. Send transcript to OpenAI to get summary
 5. Once summary received, display summary
 6. Adjust prompt for chatbot to include summary
+
+### Todo
+1. Adjust summary prompt to split into sections. Key points format.
+2. Make a prompt for timestamps/chapters
+2. Adjust chatbot prompt to take in video lecture information.
+
+### Backlog features
+- Timestamp automatically jumps to that part of the video
+- Chatbot Citations
+- User could saves transcription/chatbot history by converting it to notes.

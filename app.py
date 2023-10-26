@@ -69,36 +69,47 @@ async def predict(input, history):
     messages = [(history[i]['content'], history[i+1]['content']) for i in range(0, len(history)-1, 2)]
     return messages, history
 
+async def on_upload(video, history):
+        file_path = video
+        transcript, ts_transcript = ws.transcribe(file_path)
+        summary = ss.summarize(transcript)
+        chapters = ss.get_chapters(ts_transcript, summary)
+
+        prompt = f"""You are a helpful teaching assistant, your job is to answer questions concisely in a friendly tone based on 
+        the following transcription of a lecture video:
+        "{transcript}" 
+        """
+        history.append({'role': 'user', 'content': prompt})
+        response = await make_completion(history)
+        history.append({'role': 'assistant', 'content': response})
+
+        return transcript, summary, chapters, history
+
 def video_identity(video):
     return video
-
 
 '''
 Gradio Blocks low-level API that allows to create custom web applications (here our chat app and video player)
 '''
 with gr.Blocks() as demo:
+    state = gr.State([]) # chatbot message history
 
     title = gr.Markdown('#Lectsure AI')
 
     with gr.Row():
-        vid = gr.Video(type='filepath', scale=1)
+        vid = gr.Video(type='filepath', scale=3)
+        chapters = gr.Textbox(interactive=False, label='Chapter List', scale=1)
         
+    with gr.Row():
+        summary = gr.Textbox(label='Summary', interactive=False, scale=2)
         with gr.Column(scale=0):
-            chatbot = gr.Chatbot(label='Lectsure AI', scale=0)
-            state = gr.State([])
-            txt = gr.Textbox(show_label=False, placeholder='Enter text and press enter', )
+            chatbot = gr.Chatbot(label='Lectsure AI', scale=1)
+            txt = gr.Textbox(show_label=False, placeholder='Enter text and press enter', scale=1)
             txt.submit(predict, [txt, state], [chatbot, state])
-    
-    summary = gr.Textbox(label='Summary',interactive=False)
-    transcript = gr.Textbox(label='Transcript',interactive=False)
-    
-    def on_upload(video):
-        file_path = video
-        transcript = ws.transcribe(file_path)
-        summary = ss.summarize(transcript)
-        return transcript, summary
-    
-    vid.upload(fn=on_upload, inputs=[vid], outputs=[transcript, summary])
+
+    transcript = gr.Textbox(label='Transcript', interactive=False)
+
+    vid.upload(fn=on_upload, inputs=[vid, state], outputs=[transcript, summary, chapters, state])
 
     
 if __name__ == '__main__':
